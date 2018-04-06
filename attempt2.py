@@ -1,10 +1,11 @@
 import numpy as np
+import pdb
 import cv2 as cv
 import os
 
 TEST_IMGS_PATH = 'test_imgs/'
-rect_lower = 0.9
-small_arc_upper = 0.9
+rect_lower = 0.89
+small_arc_upper = 0.89
 small_arc_lower = 0.83
 bone_upper = 0.83
 bone_lower = 0.75
@@ -21,6 +22,7 @@ class Obstacle:
         self.rect = cv.minAreaRect(contour)
         self.boundingRect = cv.boundingRect(contour)
         self.inferType()
+        self.angle = self.rect[2] if self.rect[2] > -45. else self.rect[2] + 90.  # just trust it 
 
     def inferType(self):
         if self.solidity > rect_lower:
@@ -35,15 +37,19 @@ class Obstacle:
             self.type = 'small arc' 
         else:
             self.type = 'WTF IS THIS?!?!?!?!'
+
+    # def angle(self):
+
     
     def visualize(self, pic):
         angle = self.rect[2]
+
         box = cv.boxPoints(self.rect)
         box = np.int0(box)
         cv.drawContours(pic,[box],0,(0,0,255),2)
         (x,y,w,h) = self.boundingRect
         cv.putText(pic, self.type,(x+w,y+h), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1, cv.LINE_AA)  # red text
-        cv.putText(pic, str(angle),(x,y), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv.LINE_AA)  # red text
+        cv.putText(pic, str(self.angle),(x,y), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv.LINE_AA)  # red text
 
 
 def fitRectangles(pic):
@@ -76,15 +82,20 @@ def fitRectangles(pic):
 
     # post process thresh
     se = cv.getStructuringElement(cv.MORPH_ELLIPSE,(2, 2))
-    thresh = cv.erode(thresh, se, iterations = 2)
-    se = cv.getStructuringElement(cv.MORPH_ELLIPSE,(12, 12))
+    thresh = cv.erode(thresh, se, iterations = 5)
+
+    se = cv.getStructuringElement(cv.MORPH_ELLIPSE,(10, 10))
     thresh = cv.morphologyEx(thresh, cv.MORPH_CLOSE, se)
+
+    # median blur
+    thresh = cv.medianBlur(thresh, 15).astype(np.uint8)
 
     # find contours
     im2, contours, hierarchy = cv.findContours(thresh, 1, 2)
 
     obstacles = []
 
+    # good contours
     for c in contours:
         area = cv.contourArea(c)
         if (area > 1000 and area < 150000):
