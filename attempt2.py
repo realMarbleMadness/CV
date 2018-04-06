@@ -3,6 +3,15 @@ import cv2 as cv
 import os
 
 TEST_IMGS_PATH = 'test_imgs/'
+rect_lower = 0.9
+small_arc_upper = 0.9
+small_arc_lower = 0.83
+bone_upper = 0.83
+bone_lower = 0.75
+big_arc_upper = 0.75
+big_arc_lower = 0.65 
+goal_upper = 0.65
+
 
 class Obstacle:
     def __init__(self, contour, area):
@@ -14,15 +23,15 @@ class Obstacle:
         self.inferType()
 
     def inferType(self):
-        if self.solidity > 0.9:
+        if self.solidity > rect_lower:
             self.type = 'long rectangle'
-        elif self.solidity < 0.65:
+        elif self.solidity < goal_upper:
             self.type = 'goal'
-        elif self.solidity < 0.75 and self.solidity > 0.65:
+        elif self.solidity < big_arc_upper and self.solidity > big_arc_lower:
             self.type = 'big arc'
-        elif self.solidity < 0.83 and self.solidity > 0.75:
-            self.type = 'dildo'
-        elif self.solidity < 0.9 and self.solidity > 0.83:
+        elif self.solidity < bone_upper and self.solidity > bone_lower:
+            self.type = 'bone'
+        elif self.solidity < small_arc_upper and self.solidity > small_arc_lower:
             self.type = 'small arc' 
         else:
             self.type = 'WTF IS THIS?!?!?!?!'
@@ -84,7 +93,7 @@ def fitRectangles(pic):
     for obs in obstacles:
         obs.visualize(pic)
 
-    cv.imshow('thresh', thresh)
+    cv.imshow('thresh', thresh*255)
     cv.imshow("Contours",pic)
     cv.waitKey(0)
 
