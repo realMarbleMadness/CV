@@ -22,6 +22,8 @@ class Obstacle:
         self.rect = cv.minAreaRect(contour)
         self.boundingRect = cv.boundingRect(contour)
         self.inferType()
+
+        # if negative angle, rotate wrist counter clockwise
         self.angle = self.rect[2] if self.rect[2] > -45. else self.rect[2] + 90.  # just trust it 
 
     def inferType(self):
@@ -42,8 +44,6 @@ class Obstacle:
 
     
     def visualize(self, pic):
-        angle = self.rect[2]
-
         box = cv.boxPoints(self.rect)
         box = np.int0(box)
         cv.drawContours(pic,[box],0,(0,0,255),2)
