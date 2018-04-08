@@ -2,6 +2,7 @@ import numpy as np
 import pdb
 import cv2 as cv
 import os
+import json
 
 TEST_IMGS_PATH = 'test_imgs/'
 rect_lower = 0.89
@@ -39,9 +40,6 @@ class Obstacle:
             self.type = 'small arc' 
         else:
             self.type = 'WTF IS THIS?!?!?!?!'
-
-    # def angle(self):
-
     
     def visualize(self, pic):
         box = cv.boxPoints(self.rect)
@@ -51,8 +49,11 @@ class Obstacle:
         cv.putText(pic, self.type,(x+w,y+h), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1, cv.LINE_AA)  # red text
         cv.putText(pic, str(self.angle),(x,y), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv.LINE_AA)  # red text
 
+def composeEnv():
+    # Compose a json object to be used in optimizer
+    pass
 
-def fitRectangles(pic):
+def fitRectangles(pic, visualize = False):
 
     gray = cv.cvtColor(pic, cv.COLOR_BGR2GRAY)
 
@@ -101,12 +102,12 @@ def fitRectangles(pic):
         if (area > 1000 and area < 150000):
             obstacles.append(Obstacle(c, area))
 
-    for obs in obstacles:
-        obs.visualize(pic)
-
-    cv.imshow('thresh', thresh*255)
-    cv.imshow("Contours",pic)
-    cv.waitKey(0)
+    if visualize:
+        for obs in obstacles:
+            obs.visualize(pic)
+        cv.imshow('thresh', thresh*255)
+        cv.imshow("Contours",pic)
+        cv.waitKey(0)
 
 
 if __name__ == "__main__":
