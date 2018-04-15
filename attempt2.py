@@ -39,9 +39,6 @@ class Obstacle:
             self.type = 'small arc' 
         else:
             self.type = 'WTF IS THIS?!?!?!?!'
-
-    # def angle(self):
-
     
     def visualize(self, pic):
         box = cv.boxPoints(self.rect)
