@@ -60,7 +60,6 @@ class Obstacle:
         cv.putText(pic, self.type, (x+w,y+h), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv.LINE_AA)  # red text
         cv.putText(pic, str(self.angle),(x,y), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv.LINE_AA)  # red text
         centroid = '(' + str(int((self.cx-self.cbx)*self.x_scale)) + ', ' + str(int((self.cy-self.cby)*self.y_scale))+ ', ' + str(int(self.z)) + ')'
-        # centroid = '(' + str(self.cx) + ', ' + str(self.cy) + ')'
         cv.putText(pic, centroid, (x+20,y+20), cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv.LINE_AA)  # red text
 
 def composeEnv():
@@ -80,9 +79,9 @@ def fitRectangles(pic, visualize = False):
     H, intrinsic = cam.camera_params(target_pts, image_pts, pic)
     dist_z = H[2,3]
 
-    print ('upper left of checker board: ', upper_left)
-    print ('bottom right of checker board: ', bottom_right)
-    print ('H matrix: ', H)
+    # print ('upper left of checker board: ', upper_left)
+    # print ('bottom right of checker board: ', bottom_right)
+    # print ('H matrix: ', H)
 
     # extraction
     gray = cv.cvtColor(pic, cv.COLOR_BGR2GRAY)
@@ -147,7 +146,7 @@ if __name__ == "__main__":
     img_names = os.listdir(TEST_IMGS_PATH)
     imgs = bb1 = [ cv.imread(TEST_IMGS_PATH+name) for name in img_names ]
 
-    imgs = cv.imread('all.png')
-    fitRectangles(imgs)
+    imgs = cv.imread('all2.png')
+    fitRectangles(imgs, visualize=True)
 
     
