@@ -3,6 +3,8 @@ import pdb
 import cv2 as cv
 import os
 import Cali_Cam as cc
+import json
+
 
 TEST_IMGS_PATH = 'test_imgs/'
 rect_lower = 0.89
@@ -61,8 +63,11 @@ class Obstacle:
         # centroid = '(' + str(self.cx) + ', ' + str(self.cy) + ')'
         cv.putText(pic, centroid, (x+20,y+20), cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv.LINE_AA)  # red text
 
+def composeEnv():
+    # Compose a json object to be used in optimizer
+    pass
 
-def fitRectangles(pic):
+def fitRectangles(pic, visualize = False):
 
     # calibrate camera first
     cam = cc.Cali_Cam()
@@ -130,12 +135,12 @@ def fitRectangles(pic):
         if (area > 1000 and area < 150000):
             obstacles.append(Obstacle(c, area, moments, x_scale, y_scale, upper_left, dist_z))
 
-    for obs in obstacles:
-        obs.visualize(pic)
-
-    cv.imshow('thresh', thresh*255)
-    cv.imshow("Contours",pic)
-    cv.waitKey(0)
+    if visualize:
+        for obs in obstacles:
+            obs.visualize(pic)
+        cv.imshow('thresh', thresh*255)
+        cv.imshow("Contours",pic)
+        cv.waitKey(0)
 
 
 if __name__ == "__main__":
