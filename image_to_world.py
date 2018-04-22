@@ -16,14 +16,15 @@ col_corner = 7
 checker_size = 24.  # in mm
 
 objp = np.zeros((row_corner*col_corner, 3), np.float32)
-
 objp = np.zeros ((70, 3), np.float32)
-count = 0
-for i in range(0, 10):
-    for j in range(6, -1, -1):
-        objp[count, 0] = i
-        objp[count, 1] = j
-        count += 1
+objp[:,:2] = np.mgrid[0:col_corner,0:row_corner].T.reshape(-1,2)
+
+# count = 0
+# for i in range(0, 10):
+#     for j in range(6, -1, -1):
+#         objp[count, 0] = i
+#         objp[count, 1] = j
+#         count += 1
 
 objp = objp*checker_size
 
@@ -59,15 +60,21 @@ CB_diagonal = corners2[(row_corner-1)*col_corner]
 ret, intrinsic, dist, rotation, translation = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
 retval, rvec, tvec = cv.solvePnP(objpoints[0], imgpoints[0], intrinsic, dist)
 
-# get
-rot_mat = cv.Rodrigues(rotation[0])[0]
-cam_pos = np.matrix(rot_mat).T*np.matrix(translation[0])
-cam_pos[2] -= 1000
-
-print (cam_pos)
-
 pdb.set_trace()
 
+# get
+cam_rot = cv.Rodrigues(rotation[0])[0]
+cam_trans = np.matrix(cam_rot).T*np.matrix(translation[0])
+cam_trans[2] -= 1000
+
+cam_trans = np.squeeze(cam_trans, axis=1)
+
+H = np.zeros((4,4))
+H[0:3, 0:3] = cam_rot
+H[0:3, 3] = cam_trans
+H[3,3] = 1 
+
+print (H)
 
 
 

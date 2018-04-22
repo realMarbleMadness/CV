@@ -2,6 +2,7 @@ import numpy as np
 import pdb
 import cv2 as cv
 import os
+import Cali_Cam as cc
 
 TEST_IMGS_PATH = 'test_imgs/'
 rect_lower = 0.89
@@ -12,15 +13,24 @@ bone_lower = 0.75
 big_arc_upper = 0.75
 big_arc_lower = 0.65 
 goal_upper = 0.65
+padding = 50
 
 
 class Obstacle:
-    def __init__(self, contour, area):
+    def __init__(self, contour, area, moments, x_scale, y_scale, upper_left, z):
         hull = cv.convexHull(contour)
         hull_area = cv.contourArea(hull)
         self.solidity = float(area)/hull_area
         self.rect = cv.minAreaRect(contour)
         self.boundingRect = cv.boundingRect(contour)
+        self.moments = moments
+        self.cx = int(self.moments['m10']/self.moments['m00'])
+        self.cy = int(self.moments['m01']/self.moments['m00'])
+        self.x_scale = x_scale
+        self.y_scale = y_scale
+        self.cbx = upper_left[0]
+        self.cby = upper_left[1] 
+        self.z = z
         self.inferType()
 
         # if negative angle, rotate wrist counter clockwise
@@ -45,23 +55,44 @@ class Obstacle:
         box = np.int0(box)
         cv.drawContours(pic,[box],0,(0,0,255),2)
         (x,y,w,h) = self.boundingRect
-        cv.putText(pic, self.type,(x+w,y+h), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1, cv.LINE_AA)  # red text
-        cv.putText(pic, str(self.angle),(x,y), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 1, cv.LINE_AA)  # red text
+        cv.putText(pic, self.type, (x+w,y+h), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv.LINE_AA)  # red text
+        cv.putText(pic, str(self.angle),(x,y), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv.LINE_AA)  # red text
+        centroid = '(' + str(int((self.cx-self.cbx)*self.x_scale)) + ', ' + str(int((self.cy-self.cby)*self.y_scale))+ ', ' + str(int(self.z)) + ')'
+        # centroid = '(' + str(self.cx) + ', ' + str(self.cy) + ')'
+        cv.putText(pic, centroid, (x+20,y+20), cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv.LINE_AA)  # red text
 
 
 def fitRectangles(pic):
 
+    # calibrate camera first
+    cam = cc.Cali_Cam()
+    target_pts, image_pts = cam.extract_points(pic)
+    cb_origin, cb_diagonal, x_scale, y_scale = cam.CB_bounds(image_pts)  # will be used later to mask out the checkerboard
+
+    upper_left = np.array([cb_origin[0], cb_diagonal[1]]).astype(int)
+    bottom_right = np.array([cb_diagonal[0], cb_origin[1]]).astype(int)
+
+    H, intrinsic = cam.camera_params(target_pts, image_pts, pic)
+    dist_z = H[2,3]
+
+    print ('upper left of checker board: ', upper_left)
+    print ('bottom right of checker board: ', bottom_right)
+    print ('H matrix: ', H)
+
+    # extraction
     gray = cv.cvtColor(pic, cv.COLOR_BGR2GRAY)
 
     # bw image, white is region of interest
     t = np.ceil(0.42*256)
     ret, thresh = cv.threshold(gray, t, 1, cv.THRESH_BINARY_INV)  # assign 1 to the regions that are above t
 
+    # remove checkerboard regions
+    # thresh[upper_left[1]-padding:bottom_right[1]+padding, upper_left[0]-padding:bottom_right[0]+padding] = 0
+    thresh[0:bottom_right[1]+padding, 0:bottom_right[0]+padding] = 0
+
     # convert BGR to HSV
     hsv = cv.cvtColor(pic, cv.COLOR_BGR2HSV)
     hsv = cv.normalize(hsv.astype('float'), None, 0.0, 1.0, cv.NORM_MINMAX)
-    # for some reason openCV is 1.4010989010989023 smaller than matlab in h
-    # for some reason openCV is 1.0211670480549206 smaller than matlab in s, maybe not
     h_const = 1.4010989010989023
     s_const = 1.0211670480549206
 
@@ -95,8 +126,9 @@ def fitRectangles(pic):
     # good contours
     for c in contours:
         area = cv.contourArea(c)
+        moments = cv.moments(c)
         if (area > 1000 and area < 150000):
-            obstacles.append(Obstacle(c, area))
+            obstacles.append(Obstacle(c, area, moments, x_scale, y_scale, upper_left, dist_z))
 
     for obs in obstacles:
         obs.visualize(pic)
@@ -109,9 +141,8 @@ def fitRectangles(pic):
 if __name__ == "__main__":
     img_names = os.listdir(TEST_IMGS_PATH)
     imgs = bb1 = [ cv.imread(TEST_IMGS_PATH+name) for name in img_names ]
-    fitRectangles(imgs[0])
-    
 
-# # blob detector
-# detector = cv.SimpleBlobDetector_create(params)
-# keypoints = detector.detect(thresh)
+    imgs = cv.imread('all.png')
+    fitRectangles(imgs)
+
+    
