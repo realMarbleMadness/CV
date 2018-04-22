@@ -17,7 +17,6 @@ big_arc_lower = 0.65
 goal_upper = 0.65
 padding = 50
 
-
 class Obstacle:
     def __init__(self, contour, area, moments, x_scale, y_scale, upper_left, z):
         hull = cv.convexHull(contour)
@@ -62,9 +61,46 @@ class Obstacle:
         centroid = '(' + str(int((self.cx-self.cbx)*self.x_scale)) + ', ' + str(int((self.cy-self.cby)*self.y_scale))+ ', ' + str(int(self.z)) + ')'
         cv.putText(pic, centroid, (x+20,y+20), cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv.LINE_AA)  # red text
 
-def composeEnv():
+def composeEnv(obstacles):
     # Compose a json object to be used in optimizer
-    pass
+    global_dict = dict()
+    o_list = []
+    for o in obstacles:
+        count = 0
+        x, y, w, h = o.boundingRect
+
+        # destination
+        if o.type == 'goal':
+            destination = {'x': (o.cx - o.cbx)*o.x_scale, 
+                           'y': (o.cy - o.cby)*o.y_Scale, 
+                           'width': w*o.x_scale, 
+                           'height': h*o.y_scale}
+            global_dict['destination'] = destination
+
+        else:
+            o_dict = {'type': o.type, 
+                      'cx': (o.cx - o.cbx)*o.x_scale, 
+                      'cy': (o.cy - o.cby)*o.y_scale, 
+                      'width': w*o.x_scale, 
+                      'height': h*o.y_scale}
+            o_list.append(o_dict)
+
+    # obstacles
+    global_dict['obstacles'] = o_list
+
+    # number of obstacles
+    global_dict['n_obstacles'] = len(obstacles)
+
+    # bounds
+    bounds = {'x':[-0.8, 0.8], 'y':[0, 1.6], 'rotation':[0, 31.4159265359]}
+    global_dict['bounds'] = bounds
+
+    # ball    
+    ball = {'radius': 0.01, 'location':[-0.6, 1.5], 'linear_velocity':[0.3, -0.1]}
+    global_dict['ball'] = ball
+
+
+    return global_dict 
 
 def fitRectangles(pic, visualize = False):
 
@@ -78,10 +114,6 @@ def fitRectangles(pic, visualize = False):
 
     H, intrinsic = cam.camera_params(target_pts, image_pts, pic)
     dist_z = H[2,3]
-
-    # print ('upper left of checker board: ', upper_left)
-    # print ('bottom right of checker board: ', bottom_right)
-    # print ('H matrix: ', H)
 
     # extraction
     gray = cv.cvtColor(pic, cv.COLOR_BGR2GRAY)
@@ -134,12 +166,15 @@ def fitRectangles(pic, visualize = False):
         if (area > 1000 and area < 150000):
             obstacles.append(Obstacle(c, area, moments, x_scale, y_scale, upper_left, dist_z))
 
-    if visualize:
-        for obs in obstacles:
-            obs.visualize(pic)
-        cv.imshow('thresh', thresh*255)
-        cv.imshow("Contours",pic)
-        cv.waitKey(0)
+    # if visualize:
+    #     for obs in obstacles:
+    #         obs.visualize(pic)
+    #     cv.imshow('thresh', thresh*255)
+    #     cv.imshow("Contours",pic)
+    #     cv.waitKey(0)
+
+    test_data = composeEnv(obstacles)
+    return test_data
 
 
 if __name__ == "__main__":
@@ -147,6 +182,8 @@ if __name__ == "__main__":
     imgs = bb1 = [ cv.imread(TEST_IMGS_PATH+name) for name in img_names ]
 
     imgs = cv.imread('all2.png')
-    fitRectangles(imgs, visualize=True)
+    test_data = fitRectangles(imgs, visualize=True)
+
+    pdb.set_trace()
 
     
