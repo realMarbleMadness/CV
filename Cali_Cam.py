@@ -2,7 +2,6 @@ import numpy as np
 from numpy import linalg as LA
 import math
 
-import pdb
 import cv2 as cv
 import os
 import glob
