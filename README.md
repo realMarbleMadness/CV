@@ -1,13 +1,15 @@
-# CV
+# Vision system for Marble Madness
 
-step one
-get matlab
+Yes, I know I'm the only one who bother to **waste my own time writing document** for the code, and the only one who will bother reading it.
 
-step two
-get openCV for python
-pip install opencv-python
+## How to install the dependencies
 
-step three
-profit!
+```
+pip install -r requirements.txt
+```
 
-sent from iPhone
+## How to run the test program
+
+```
+python im2env.py
+```
