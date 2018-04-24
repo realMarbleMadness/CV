@@ -200,10 +200,9 @@ def fitRectangles(pic, visualize=False):
 
 if __name__ == "__main__":
     img_names = os.listdir(TEST_IMGS_PATH)
-    # imgs = bb1 = [cv.imread(TEST_IMGS_PATH+name) for name in img_names]
-    imgs = cv.imread('yanda_test2.png')
+    imgs = bb1 = [cv.imread(TEST_IMGS_PATH+name) for name in img_names]
 
-    environment = fitRectangles(imgs, visualize=True)
+    environment = fitRectangles(imgs[0], visualize=True)
     pprint.pprint(environment)
     r = requests.post('http://localhost:5000/getpose', json=environment)
     pprint.pprint(r.json())
