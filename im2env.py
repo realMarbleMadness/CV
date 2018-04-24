@@ -4,6 +4,7 @@ import os
 import Cali_Cam as cc
 import requests
 import pprint
+import pdb
 
 
 TEST_IMGS_PATH = 'test_imgs/'
@@ -64,23 +65,28 @@ class Obstacle:
                    0.5, (0, 255, 0), 1, cv.LINE_AA)  # red text
         centroid = '(' + str(int((self.cx-self.cbx)*self.x_scale)) + ', ' + \
             str(int((self.cy-self.cby)*self.y_scale)) + \
-            ', ' + str(int(self.z)) + ')'
+                     ', ' + str(int(self.z)) + ')'
         cv.putText(pic, centroid, (x+20, y+20), cv.FONT_HERSHEY_SIMPLEX,
                    0.5, (255, 0, 0), 1, cv.LINE_AA)  # red text
 
 
-def composeEnv(obstacles):
+def composeEnv(obstacles, row, col):
     # Compose a json object to be used in optimizer
     global_dict = dict()
     o_list = []
+
+    obs = obstacles[0]
+    x_bound = col*obs.x_scale/1000
+    y_bound = row*obs.y_scale/1000
+
     for o in obstacles:
         count = 0
         (x, y), (w, h), _ = o.rect
 
         # destination
         if o.type == 'goal':
-            destination = {'x': (o.cx - o.cbx)*o.x_scale / 1000,
-                           'y': (o.cy - o.cby)*o.y_Scale / 1000,
+            destination = {'x': (o.cx - o.cbx)*o.x_scale / 1000,  # x is good
+                           'y': y_bound-(o.cy - o.cby)*o.y_scale / 1000,  # y is actually bottom left, not top left
                            'width': w*o.x_scale / 1000,
                            'height': h*o.y_scale / 1000}
             global_dict['destination'] = destination
@@ -94,19 +100,19 @@ def composeEnv(obstacles):
                       'height': h*o.y_scale / 1000}
             o_list.append(o_dict)
 
+    # bounds
+    bounds = {'x': [0, x_bound], 'y': [0, y_bound], 'rotation': [0, 31.4159265359]}
+    global_dict['bounds'] = bounds
+
     # obstacles
     global_dict['obstacles'] = o_list
 
     # number of obstacles
-    global_dict['n_obstacles'] = len(obstacles)
-
-    # bounds
-    bounds = {'x': [-0.8, 0.8], 'y': [0, 1.6], 'rotation': [0, 31.4159265359]}
-    global_dict['bounds'] = bounds
+    global_dict['n_obstacles'] = len(obstacles)-1
 
     # ball
     ball = {'radius': 0.01,
-            'location': [-0.6, 1.5], 'linear_velocity': [0.3, -0.1]}
+            'location': [x_bound/3, y_bound], 'linear_velocity': [0.1, -0.05]}
     global_dict['ball'] = ball
 
     return global_dict
@@ -186,15 +192,19 @@ def fitRectangles(pic, visualize=False):
         cv.imshow("Contours", pic)
         cv.waitKey(0)
 
-    return composeEnv(obstacles)
+    # send into compose env for calculating bounds
+    row, col = thresh.shape
+
+    return composeEnv(obstacles, row, col)
 
 
 if __name__ == "__main__":
     img_names = os.listdir(TEST_IMGS_PATH)
-    imgs = bb1 = [cv.imread(TEST_IMGS_PATH+name) for name in img_names]
+    # imgs = bb1 = [cv.imread(TEST_IMGS_PATH+name) for name in img_names]
+    imgs = cv.imread('yanda_test2.png')
 
-    environment = fitRectangles(imgs[0], visualize=True)
+    environment = fitRectangles(imgs, visualize=True)
     pprint.pprint(environment)
-    # r = requests.post('http://localhost:5000/getpose', json=environment)
-    # pprint.pprint(r.json())
+    r = requests.post('http://localhost:5000/getpose', json=environment)
+    pprint.pprint(r.json())
     pass
