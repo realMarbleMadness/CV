@@ -20,7 +20,12 @@ padding = 50
 
 
 class Obstacle:
-    def __init__(self, contour, area, moments, x_scale, y_scale, upper_left, z):
+    def __init__(self, contour, area, moments, x_scale, y_scale, upper_left, cbx, cby, z):
+        '''
+        cbx -> the x coordinate of the origin of the checkerboard in REAL WORLD COORDINATES(mm) in CAMERA FRAME
+        cby -> the y coordinate of the origin of the checkerboard in REAL WORLD COORDINATES(mm) in CAMERA FRAME
+        z -> the z coordinate of the origin of the checkerboard in REAL WORLD COORDINATES(mm) in CAMERA FRAME
+        '''
         hull = cv.convexHull(contour)
         hull_area = cv.contourArea(hull)
         self.solidity = float(area)/hull_area
@@ -31,8 +36,10 @@ class Obstacle:
         self.cy = int(self.moments['m01']/self.moments['m00'])
         self.x_scale = x_scale
         self.y_scale = y_scale
-        self.cbx = upper_left[0]
-        self.cby = upper_left[1]
+        # self.cbx = upper_left[0]
+        # self.cby = upper_left[1]
+        self.cbx = cbx
+        self.cby = cby
         self.z = z
         self.inferType()
 
@@ -63,15 +70,21 @@ class Obstacle:
                    0.5, (0, 0, 255), 1, cv.LINE_AA)  
         cv.putText(pic, str(self.angle), (x, y), cv.FONT_HERSHEY_SIMPLEX,
                    0.5, (0, 255, 0), 1, cv.LINE_AA)  
-        centroid = '(' + str(int((self.cx-self.cbx)*self.x_scale)) + ', ' + \
-            str(int((self.cy-self.cby)*self.y_scale)) + \
-                     ', ' + str(int(self.z)) + ')'
+        centroid = '(' + str(int(self.cx*self.x_scale+self.cbx)) + ', ' + \
+                         str(int(self.cy*self.y_scale+self.cby)) + \
+                  ', ' + str(int(self.z)) + ')'
+        # centroid = '(' + str(int((self.cx)*self.x_scale)) + ', ' + \
+        #            str(int((self.cy)*self.y_scale)) + \
+        #            ', ' + str(int(self.z)) + ')'
         cv.putText(pic, centroid, (x+20, y+20), cv.FONT_HERSHEY_SIMPLEX,
-                   0.5, (255, 0, 0), 1, cv.LINE_AA)  
+                   0.5, (255, 0, 0), 1, cv.LINE_AA)
 
 
 def composeEnv(obstacles, row, col):
-    # Compose a json object to be used in optimizer
+    '''
+    Compose a json object to be used in optimizer
+    all positional measurements are in meters
+    '''
     global_dict = dict()
     o_list = []
 
@@ -85,16 +98,16 @@ def composeEnv(obstacles, row, col):
 
         # destination
         if o.type == 'goal':
-            destination = {'x': (o.cx - o.cbx)*o.x_scale / 1000,  # x is good
-                           'y': y_bound-(o.cy - o.cby)*o.y_scale / 1000,  # y is actually bottom left, not top left
+            destination = {'x': (o.cx*o.x_scale + o.cbx) / 1000,  # x is good
+                           'y': y_bound-(o.cy*o.y_scale + o.cby) / 1000,  # y is actually bottom left, not top left
                            'width': w*o.x_scale / 1000,
                            'height': h*o.y_scale / 1000}
             global_dict['destination'] = destination
         else:
             # i know cx and cy is a better name but let me test this first
             o_dict = {'type': o.type,
-                      'x': (o.cx - o.cbx)*o.x_scale / 1000,
-                      'y': (o.cy - o.cby)*o.y_scale / 1000,
+                      'x': (o.cx*o.x_scale + o.cbx) / 1000,
+                      'y': (o.cy*o.y_scale + o.cby) / 1000,
                       'width': w*o.x_scale / 1000,
                       'height': h*o.y_scale / 1000}
             o_list.append(o_dict)
@@ -122,8 +135,7 @@ def fitRectangles(pic, visualize=False):
     # calibrate camera first
     cam = cc.Cali_Cam()
     target_pts, image_pts = cam.extract_points(pic)
-    cb_origin, cb_diagonal, x_scale, y_scale = cam.CB_bounds(
-        image_pts)  # will be used later to mask out the checkerboard
+    cb_origin, cb_diagonal, x_scale, y_scale = cam.CB_bounds(image_pts)  # will be used later to mask out the checkerboard
 
     upper_left = np.array([cb_origin[0], cb_diagonal[1]]).astype(int)
     bottom_right = np.array([cb_diagonal[0], cb_origin[1]]).astype(int)
@@ -131,11 +143,15 @@ def fitRectangles(pic, visualize=False):
     H, intrinsic = cam.camera_params(target_pts, image_pts, pic)
     dist_z = H[2, 3]
 
+    # checkerboard origin in camera frame, real world coordinates
+    cbx = H[0, 3]
+    cby = H[1, 3]
+
     # extraction
     gray = cv.cvtColor(pic, cv.COLOR_BGR2GRAY)
 
     # bw image, white is region of interest
-    t = np.ceil(0.48*256)  # 0.43 might be better for other pics
+    t = np.ceil(0.43*256)  # 0.43 might be better for other pics
     # assign 1 to the regions that are above t
     ret, thresh = cv.threshold(gray, t, 1, cv.THRESH_BINARY_INV)
 
@@ -179,7 +195,7 @@ def fitRectangles(pic, visualize=False):
         moments = cv.moments(c)
         if (area > 1000 and area < 150000):
             obstacles.append(
-                Obstacle(c, area, moments, x_scale, y_scale, upper_left, dist_z))
+                Obstacle(c, area, moments, x_scale, y_scale, upper_left, cbx, cby, dist_z))
 
     if visualize:
         for obs in obstacles:

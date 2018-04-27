@@ -89,7 +89,6 @@ class Cali_Cam:
 
         # this is much better
         ret, rvecs, tvecs = cv.solvePnP(target_points[0], img_points[0], mat_intrin, None)
-        pdb.set_trace()
         cam_rot = cv.Rodrigues(rvecs)[0]
         cam_trans = np.matrix(cam_rot).T*np.matrix(tvecs)
         cam_trans = np.squeeze(cam_trans, axis=1)
