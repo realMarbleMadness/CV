@@ -10,8 +10,8 @@ import pdb
 TEST_IMGS_PATH = 'test_imgs/'
 rect_lower = 0.89
 small_arc_upper = 0.89
-small_arc_lower = 0.83
-bone_upper = 0.83
+small_arc_lower = 0.84  # 0.83
+bone_upper = 0.84  # 0.83
 bone_lower = 0.75
 big_arc_upper = 0.75
 big_arc_lower = 0.65
@@ -60,14 +60,14 @@ class Obstacle:
         cv.drawContours(pic, [box], 0, (0, 0, 255), 2)
         (x, y, w, h) = self.boundingRect
         cv.putText(pic, self.type, (x+w, y+h), cv.FONT_HERSHEY_SIMPLEX,
-                   0.5, (0, 0, 255), 1, cv.LINE_AA)  # red text
+                   0.5, (0, 0, 255), 1, cv.LINE_AA)  
         cv.putText(pic, str(self.angle), (x, y), cv.FONT_HERSHEY_SIMPLEX,
-                   0.5, (0, 255, 0), 1, cv.LINE_AA)  # red text
+                   0.5, (0, 255, 0), 1, cv.LINE_AA)  
         centroid = '(' + str(int((self.cx-self.cbx)*self.x_scale)) + ', ' + \
             str(int((self.cy-self.cby)*self.y_scale)) + \
                      ', ' + str(int(self.z)) + ')'
         cv.putText(pic, centroid, (x+20, y+20), cv.FONT_HERSHEY_SIMPLEX,
-                   0.5, (255, 0, 0), 1, cv.LINE_AA)  # red text
+                   0.5, (255, 0, 0), 1, cv.LINE_AA)  
 
 
 def composeEnv(obstacles, row, col):
@@ -90,7 +90,6 @@ def composeEnv(obstacles, row, col):
                            'width': w*o.x_scale / 1000,
                            'height': h*o.y_scale / 1000}
             global_dict['destination'] = destination
-
         else:
             # i know cx and cy is a better name but let me test this first
             o_dict = {'type': o.type,
@@ -136,19 +135,16 @@ def fitRectangles(pic, visualize=False):
     gray = cv.cvtColor(pic, cv.COLOR_BGR2GRAY)
 
     # bw image, white is region of interest
-    t = np.ceil(0.42*256)
+    t = np.ceil(0.48*256)  # 0.43 might be better for other pics
     # assign 1 to the regions that are above t
     ret, thresh = cv.threshold(gray, t, 1, cv.THRESH_BINARY_INV)
 
     # remove checkerboard regions
-    # thresh[upper_left[1]-padding:bottom_right[1]+padding, upper_left[0]-padding:bottom_right[0]+padding] = 0
     thresh[0:bottom_right[1]+padding, 0:bottom_right[0]+padding] = 0
 
     # convert BGR to HSV
     hsv = cv.cvtColor(pic, cv.COLOR_BGR2HSV)
     hsv = cv.normalize(hsv.astype('float'), None, 0.0, 1.0, cv.NORM_MINMAX)
-    h_const = 1.4010989010989023
-    s_const = 1.0211670480549206
 
     # h channel to remove the shadow
     h_ch = hsv[:, :, 0]
@@ -188,6 +184,7 @@ def fitRectangles(pic, visualize=False):
     if visualize:
         for obs in obstacles:
             obs.visualize(pic)
+            # print ('type: ', obs.type, ' solidity: ', obs.solidity, ' angle: ', obs.angle)
         cv.imshow('thresh', thresh*255)
         cv.imshow("Contours", pic)
         cv.waitKey(0)
@@ -201,10 +198,10 @@ def fitRectangles(pic, visualize=False):
 if __name__ == "__main__":
     img_names = os.listdir(TEST_IMGS_PATH)
     # imgs = bb1 = [cv.imread(TEST_IMGS_PATH+name) for name in img_names]
-    imgs = cv.imread('yanda_test2.png')
+    imgs = cv.imread('all2.png')
 
     environment = fitRectangles(imgs, visualize=True)
     pprint.pprint(environment)
-    r = requests.post('http://localhost:5000/getpose', json=environment)
-    pprint.pprint(r.json())
+    # r = requests.post('http://localhost:5000/getpose', json=environment)
+    # pprint.pprint(r.json())
     pass

@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import linalg as LA
 import math
+import pdb
 
 import cv2 as cv
 import os
@@ -72,15 +73,30 @@ class Cali_Cam:
 
         gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
         ret, intrinsic, dist, rotation, translation = cv.calibrateCamera(target_points, img_points, gray.shape[::-1], None, None)
+        # cam_rot = cv.Rodrigues(rotation[0])[0]
+        # cam_trans = np.matrix(cam_rot).T*np.matrix(translation[0])
+        # cam_trans[2] -= 1000
+        # cam_trans = np.squeeze(cam_trans, axis=1)
+        # H = np.zeros((4,4))
+        # H[0:3, 0:3] = cam_rot
+        # H[0:3, 3] = cam_trans
+        # H[3,3] = 1 
 
-        cam_rot = cv.Rodrigues(rotation[0])[0]
-        cam_trans = np.matrix(cam_rot).T*np.matrix(translation[0])
-        cam_trans[2] -= 1000
+        mat_intrin = np.array([[924.1445, 0,        0],  # from matlab
+                               [0,        924.4962, 0], 
+                               [636.5713, 364.4404, 1]])
+        mat_intrin = np.transpose(mat_intrin)  # representation is different
+
+        # this is much better
+        ret, rvecs, tvecs = cv.solvePnP(target_points[0], img_points[0], mat_intrin, None)
+        pdb.set_trace()
+        cam_rot = cv.Rodrigues(rvecs)[0]
+        cam_trans = np.matrix(cam_rot).T*np.matrix(tvecs)
         cam_trans = np.squeeze(cam_trans, axis=1)
         H = np.zeros((4,4))
         H[0:3, 0:3] = cam_rot
         H[0:3, 3] = cam_trans
         H[3,3] = 1 
 
-        return H, intrinsic
+        return H, mat_intrin
 
