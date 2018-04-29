@@ -72,6 +72,9 @@ class Obstacle:
                    0.5, (0, 0, 255), 1, cv.LINE_AA)  
         cv.putText(pic, str(self.angle), (x, y), cv.FONT_HERSHEY_SIMPLEX,
                    0.5, (0, 255, 0), 1, cv.LINE_AA)  
+        # centroid = '(' + str(int(self.cx*self.x_scale+self.cbx)) + ', ' + \
+        #                  str(-int(self.cy*self.y_scale+self.cby)) + \
+        #           ', ' + str(int(self.z)) + ')'
         centroid = '(' + str(int(self.cx*self.x_scale+self.cbx)) + ', ' + \
                          str(-int(self.cy*self.y_scale+self.cby)) + \
                   ', ' + str(int(self.z)) + ')'
@@ -294,7 +297,7 @@ if __name__ == "__main__":
     # img_names = os.listdir(TEST_IMGS_PATH)
     # imgs = bb1 = [cv.imread(TEST_IMGS_PATH+name) for name in img_names]
 
-    imgs = cv.imread('div_test.png')
+    imgs = cv.imread('divjen_Color.png')
     environment = fitRectangles(imgs, visualize=True)
     pprint.pprint(environment)
 

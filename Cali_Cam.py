@@ -34,8 +34,13 @@ class Cali_Cam:
         img_points = [] # 2d points in image plane.
 
         gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+        gray = gray[0:gray.shape[0]/2, 0:gray.shape[1]/2]  # for some reason, checkerboard cannot be detected in some pictures, cropping the image to its upper left quarter
+        # cv.imshow('gray', gray)
+        # cv.waitKey(0)
+        # pdb.set_trace()
 
         ret, corners = cv.findChessboardCorners(gray, (self.num_row, self.num_col), None)
+        pdb.set_trace()
         # If found, add object points, image points (after refining them)
         if ret == True:
             target_points.append(target_coord)
@@ -54,6 +59,7 @@ class Cali_Cam:
 
     def CB_bounds(self, points):
         # unfortunately, returns the bottom left and upper right of the checkerboard
+        # pdb.set_trace()
 
         CB_origin = points[0][0]
         CB_origin = np.squeeze(CB_origin, 0)
